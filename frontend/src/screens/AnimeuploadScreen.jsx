@@ -16,10 +16,10 @@ const AnimeuploadScreen = () => {
     e.preventDefault();
     const config = {
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "Application/JSON",
       },
     };
-    const { status } = await axios.post(
+    const { status } = await axios.put(
       "/api/uploadAnime",
       { name, image, genre, synopsis },
       config

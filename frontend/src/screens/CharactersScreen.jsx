@@ -9,44 +9,27 @@ import NoDataFound from "../components/NoDataFound";
 
 const CharactersScreen = () => {
   const { id: animeID } = useParams();
-  const [characters, setCharacters] = useState({});
-  const [loadingCharacters, setLoadingCharacters] = useState(true);
-  const [synopsis, setSynopsis] = useState("");
-  const [loadingSynopsis, setLoadingSynopsis] = useState(true);
+  const [animeDetail, setAnimeDetail] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  const fetchCharacters = async () => {
+  const fetchAnimePage = async () => {
     try {
-      const { data } = await axios.get(`/api/getCharacters/${animeID}`);
-      setCharacters(data);
+      const { data } = await axios.get(`/api/animePage/${animeID}`);
+      setAnimeDetail(data);
     } catch (error) {
       console.log(error);
     } finally {
-      setLoadingCharacters(false);
-    }
-  };
-
-  const fetchSynopsis = async () => {
-    try {
-      const { data } = await axios.get(`/api/getSynopsis/${animeID}`);
-      setSynopsis(data);
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoadingSynopsis(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      await Promise.all([fetchCharacters(), fetchSynopsis()]);
-    };
-
-    fetchData();
+    fetchAnimePage();
   }, []);
 
   return (
     <>
-      {loadingCharacters || loadingSynopsis ? (
+      {loading ? (
         <div
           style={{
             display: "flex",
@@ -59,7 +42,7 @@ const CharactersScreen = () => {
         </div>
       ) : (
         <>
-          <Synopsis synopsis={synopsis} />
+          <Synopsis synopsis={animeDetail.synopsis} />
           <div
             style={{
               marginTop: "4rem",
@@ -70,13 +53,13 @@ const CharactersScreen = () => {
           >
             Characters
           </div>
-          {Object.keys(characters).length === 0 ? (
+          {!animeDetail.characters || Object.keys(animeDetail.characters).length === 0 ? (
             <NoDataFound />
           ) : (
             <Row>
-              {Object.keys(characters).map((key) => (
+              {Object.keys(animeDetail.characters).map((key) => (
                 <Col key={key} sm={13} md={6} lg={3} xl={4}>
-                  <Character character={characters[key]} />
+                  <Character character={animeDetail.characters[key]} />
                 </Col>
               ))}
             </Row>

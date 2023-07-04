@@ -1,7 +1,6 @@
 import connectDB from "./config/db.js";
 import { getDatabase, ref, get, push, set, child } from "firebase/database";
 import express from "express";
-import { Socket } from "socket.io";
 import asyncHandler from "express-async-handler";
 import { notFound, errorHandler } from "./middleware/errorHandlers.js";
 import {
@@ -14,19 +13,6 @@ import {
 connectDB();
 
 const PORT = 8000;
-const io = new Server(9000);
-
-
-io.on("connection", (socket) => {
-  // send a message to the client
-  socket.emit("hello from server", 1, "2", { 3: Buffer.from([4]) });
-
-  // receive a message from the client
-  socket.on("hello from client", (...args) => {
-    // ...
-  });
-});
-
 
 const app = express();
 const auth = getAuth();
@@ -46,15 +32,13 @@ app.post(
   "/api/getAllAnimes",
   asyncHandler(async (req, res) => {
     const { keyword } = req.body;
-    const rootRef = ref(database);
-    const snapshot = await get(rootRef);
+    const animeRef = ref(database, "/anime");
+    const snapshot = await get(animeRef);
 
     if (snapshot.exists()) {
-      const data = snapshot.val();
+      const animes = snapshot.val();
 
       // Exclude the "users" key
-      const { users, ...animes } = data;
-
       if (keyword === undefined) {
         res.status(200);
         res.send(animes);
@@ -62,47 +46,27 @@ app.post(
       }
 
       // Filter animes based on the starting keyword...This is a clever way to avoid users directory in firebase
-      const matchingAnimes = Object.values(animes).filter(
-        (anime) =>
-          anime.Name &&
-          anime.Name.toLowerCase().startsWith(keyword.toLowerCase())
+      const matchingAnimes = Object.values(animes).filter((anime) =>
+        anime.Name.toLowerCase().startsWith(keyword.toLowerCase())
       );
 
-        res.send(matchingAnimes);
-        res.send(200);
+      res.send(matchingAnimes);
+      res.send(200);
     }
   })
 );
 
 app.get(
-  "/api/getSynopsis/:id",
+  "/api/animePage/:id",
   asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const animeRef = ref(database, `/${id}`);
+    const animeID = req.params.id;
+
+    const animeRef = ref(database, `/anime/${animeID}`);
     const snapshot = await get(animeRef);
 
     if (snapshot.exists()) {
       const anime = snapshot.val();
-      res.status(200);
-      res.send(anime.Synopsis);
-    } else {
-      res.status(404);
-    }
-  })
-);
-
-app.get(
-  "/api/getCharacters/:id",
-  asyncHandler(async (req, res) => {
-    const animeID = req.params.id;
-
-    const animeRef = ref(database, `/${animeID}`);
-    const charactersRef = child(animeRef, "characters");
-    const snapshot = await get(charactersRef);
-
-    if (snapshot) {
-      const anime = snapshot.val();
-      res.send(anime);
+      res.send({ characters: anime.characters, synopsis: anime.Synopsis });
       res.status(200);
     } else {
       res.status(404);
@@ -116,8 +80,8 @@ app.post(
     const { email, password } = req.body;
     const { user } = await signInWithEmailAndPassword(auth, email, password);
 
-    const usersRef = ref(database, "/users");
-    const snapshot = await get(child(usersRef, user.uid));
+    const userRef = ref(database, `/users/${user.uid}`);
+    const snapshot = await get(userRef);
     if (snapshot.exists()) {
       const userData = snapshot.val();
       const displayName = userData.displayName;
@@ -132,7 +96,7 @@ app.post(
   })
 );
 
-app.post(
+app.put(
   "/api/users/register",
   asyncHandler(async (req, res) => {
     const { displayName, phoneNumber, photoURL, email, password } = req.body;
@@ -170,14 +134,26 @@ app.get(
 
 // -------------------------------------------------ADMINS-------------------------------------------------------
 
-app.post(
+app.get(
+  "/api/getAllusers",
+  asyncHandler(async (req, res) => {
+    const usersRef = ref(database, '/users');
+    const snapshot = await get(usersRef);
+    if(snapshot.exists()){
+      res.send({users: snapshot.val()})
+    }
+  })
+);
+
+app.put(
   "/api/uploadAnime",
   asyncHandler(async (req, res) => {
-    const { name, image, genre, synopsis } = req.body;
-    const rootRef = ref(database, "/");
+    const user = auth.currentUser;
+    if (user) {
+      const { name, image, genre, synopsis } = req.body;
+      const animeRef = ref(database, "/anime");
 
-    // Check if the required data is provided
-    if (name && image && genre) {
+      // Check if the required data is provided
       const newData = {
         Name: name,
         Image: image,
@@ -185,36 +161,34 @@ app.post(
         Synopsis: synopsis,
       };
 
-      const newChildRef = push(rootRef); // Generate a new child reference with a unique key
+      const newChildRef = push(animeRef); // Generate a new child reference with a unique key
       await set(newChildRef, newData); // Set the data within the new child reference
 
       // Send a response indicating success
       res.status(200).send({ message: "New data added successfully" });
-    } else {
-      // Send an error response indicating missing data
-      res.status(400).send({ error: "Missing required data" });
     }
   })
 );
 
-app.post(
+app.put(
   "/api/uploadCharacter/:id",
   asyncHandler(async (req, res) => {
-    try {
-      const animeID = req.params.id;
+    const animeID = req.params.id;
+    const user = auth.currentUser;
 
-      const {
-        name,
-        image,
-        age,
-        gender,
-        description,
-        role,
-        abilities,
-        voiceActor,
-      } = req.body;
+    const {
+      name,
+      image,
+      age,
+      gender,
+      description,
+      role,
+      abilities,
+      voiceActor,
+    } = req.body;
 
-      const animeRef = ref(database, `/${animeID}`);
+    if (user) {
+      const animeRef = ref(database, `/users/${animeID}`);
       const charactersRef = child(animeRef, "characters");
       const newCharacterRef = push(charactersRef);
 
@@ -230,8 +204,6 @@ app.post(
       });
 
       res.status(200).json({ message: "Character uploaded successfully." });
-    } catch (error) {
-      res.status(500).json({ message: "Error uploading character." });
     }
   })
 );

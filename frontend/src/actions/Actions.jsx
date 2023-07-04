@@ -65,7 +65,7 @@ export const register = ({
         },
       };
 
-      await axios.post(
+      await axios.put(
         "/api/users/register",
         { email, password, displayName, photoURL, phoneNumber },
         config

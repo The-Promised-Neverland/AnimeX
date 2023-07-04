@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Navbar,
   Container,
   Nav,
   Form,
   FormControl,
-  Button,
   Image,
 } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
@@ -20,14 +19,13 @@ const Header = () => {
 
   const { userInfo } = useSelector((state) => state.userLogin);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
+  useEffect(() => {
     if (keyword.trim()) {
       navigate(`/search/${keyword}`);
     } else {
       navigate("/");
     }
-  };
+  }, [keyword]);
 
   return (
     <Navbar bg="dark" variant="dark" expand="lg" collapseOnSelect sticky="top">
@@ -38,7 +36,7 @@ const Header = () => {
         <Navbar.Toggle aria-controls="navbarScroll" />
         <Navbar.Collapse id="navbarScroll">
           <Nav className="me-auto">
-            <Form className="d-flex" onSubmit={handleSearch}>
+            <Form className="d-flex">
               <FormControl
                 type="search"
                 placeholder="Search anime character"
@@ -48,9 +46,6 @@ const Header = () => {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
               />
-              <Button variant="outline-success" type="submit">
-                Search
-              </Button>
             </Form>
           </Nav>
 
@@ -75,7 +70,18 @@ const Header = () => {
           ) : (
             <Nav>
               <LinkContainer to="/login">
-                <Nav.Link>Login</Nav.Link>
+                <div
+                  style={{
+                    textAlign: "center",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    marginRight: "0.5rem",
+                  }}
+                >
+                  <FaUserTie color="white" size={40} />
+                  <div style={{ color: "white" }}>Login</div>
+                </div>
               </LinkContainer>
             </Nav>
           )}
