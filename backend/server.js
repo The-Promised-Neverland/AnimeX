@@ -9,6 +9,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
+import authMiddleware from "./middleware/authStatusHandler.js";
 
 connectDB();
 
@@ -136,17 +137,22 @@ app.get(
 
 app.get(
   "/api/getAllusers",
+  authMiddleware,
   asyncHandler(async (req, res) => {
-    const usersRef = ref(database, '/users');
-    const snapshot = await get(usersRef);
-    if(snapshot.exists()){
-      res.send({users: snapshot.val()})
+    const user = auth.currentUser;
+    if (user) {
+      const usersRef = ref(database, "/users");
+      const snapshot = await get(usersRef);
+      if (snapshot.exists()) {
+        res.send({ users: snapshot.val() });
+      }
     }
   })
 );
 
 app.put(
   "/api/uploadAnime",
+  authMiddleware,
   asyncHandler(async (req, res) => {
     const user = auth.currentUser;
     if (user) {
@@ -172,6 +178,7 @@ app.put(
 
 app.put(
   "/api/uploadCharacter/:id",
+  authMiddleware,
   asyncHandler(async (req, res) => {
     const animeID = req.params.id;
     const user = auth.currentUser;
@@ -207,6 +214,11 @@ app.put(
     }
   })
 );
+
+
+
+
+
 
 app.use(notFound);
 app.use(errorHandler);

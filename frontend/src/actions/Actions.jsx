@@ -106,7 +106,7 @@ export const getAnimeList = ({ keyword }) => {
         },
       };
       const { data } = await axios.post(
-        "/api/getAllAnimes",
+        "/api/getAllAnimes", 
         { keyword },
         config
       );

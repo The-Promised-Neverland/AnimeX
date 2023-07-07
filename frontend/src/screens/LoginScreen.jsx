@@ -22,7 +22,6 @@ const LoginScreen = () => {
   const submitHandler = (e) => {
     e.preventDefault();
     navigate("/");
-    console.log(email, password);
     dispatch(login({ email, password }));
   };
 

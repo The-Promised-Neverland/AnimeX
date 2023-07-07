@@ -9,7 +9,7 @@ import NoDataFound from "../components/NoDataFound";
 
 const HomeScreen = () => {
   const { id: keyword } = useParams();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch();  
 
   const { loading } = useSelector((state) => state.userLogin);
 
